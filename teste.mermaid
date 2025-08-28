@@ -1,0 +1,30 @@
+graph TD
+
+    subgraph Estrutura_PGMImage
+        A1["formato[3] (array de char)"]
+        A2["largura (int)"]
+        A3["altura (int)"]
+        A4["maxIntensidade (int)"]
+        A5["pixels (int **)"]
+    end
+
+    Img["PGMImage *img (malloc)"] --> Estrutura_PGMImage
+
+    %% Ligações da matriz de pixels
+    A5 --> L0["pixels[0] (int*)"]
+    A5 --> L1["pixels[1] (int*)"]
+    A5 --> L2["..."]
+    A5 --> Ln["pixels[altura-1] (int*)"]
+
+    %% Exemplo das linhas
+    L0 --> P00["pixels[0][0] (int)"]
+    L0 --> P01["pixels[0][1] (int)"]
+    L0 --> P0n["assim por diante..."]
+    
+    L1 --> P10["pixels[1][0] (int)"]
+    L1 --> P11["pixels[1][1] (int)"]
+    L1 --> P1n["assim por diante..."]
+
+    Ln --> Pn0["pixels[altura-1][0] (int)"]
+    Ln --> Pn1["pixels[altura-1][1] (int)"]
+    Ln --> Pnn["assim por diante..."]
