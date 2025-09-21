@@ -133,6 +133,8 @@ void exportarImagem(const char *nomeChave, int opcao) {
         sprintf(saida, "%s_negativada.pgm", nomeChave);
     }else if (opcao == 3){
         sprintf(saida, "%s_limiarizada.pgm", nomeChave);
+    }else{
+        sprintf(saida, "%s_original.pgm", nomeChave);
     }
     
     FILE *fout = fopen(saida, "w");
