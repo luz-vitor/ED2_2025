@@ -1,9 +1,17 @@
+/*
+Júlia Miranda
+Leonardo Serafim
+Marcus Vinicius de Oliveira Silva
+Patrick Perete Santos 
+Vitor Augusto de Campos Luz
+*/ 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define INDEX_FILE "index.dat"
-#define DATA_FILE "imagens.dat"
+#define INDEX_FILE "index.bin"
+#define DATA_FILE "imagens.bin"
 #define MAX_NAME 100
 
 typedef struct {
@@ -121,7 +129,12 @@ void exportarImagem(const char *nomeChave, int opcao) {
     else if (opcao == 3) limiarizar(pixels, e.tamanho, e.tons);
 
     char saida[120];
-    sprintf(saida, "%s_out.pgm", nomeChave);
+    if(opcao == 2){
+        sprintf(saida, "%s_negativada.pgm", nomeChave);
+    }else if (opcao == 3){
+        sprintf(saida, "%s_limiarizada.pgm", nomeChave);
+    }
+    
     FILE *fout = fopen(saida, "w");
     fprintf(fout, "P2\n%d %d\n%d\n", e.colunas, e.linhas, e.tons);
     for (int i = 0; i < e.tamanho; i++) {
