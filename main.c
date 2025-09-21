@@ -13,15 +13,6 @@ typedef struct {
     int linhas, colunas, tons;
 } IndexEntry;
 
-// ---------- Função para ignorar comentários ----------
-void ignorarComentarios(FILE *f) {
-    int c;
-    while ((c = fgetc(f)) == '#') {       // se encontrar '#'
-        while ((c = fgetc(f)) != '\n' && c != EOF);  // pula até o fim da linha
-    }
-    ungetc(c, f); // devolve o último caractere válido
-}
-
 // ---------- Funções utilitárias ----------
 void salvarIndex(IndexEntry *entry) {
     FILE *f = fopen(INDEX_FILE, "ab");
@@ -73,25 +64,17 @@ void inserirImagem(const char *nomeArquivo, const char *nomeChave) {
 
     char tipo[3];
     int linhas, colunas, tons;
-
-    ignorarComentarios(fin);
     fscanf(fin, "%2s", tipo);
     if (strcmp(tipo, "P2") != 0) {
         printf("Formato não suportado! Use P2 (PGM ASCII).\n");
         fclose(fin);
         return;
     }
-
-    ignorarComentarios(fin);
-    fscanf(fin, "%d %d", &colunas, &linhas);
-
-    ignorarComentarios(fin);
-    fscanf(fin, "%d", &tons);
+    fscanf(fin, "%d %d %d", &colunas, &linhas, &tons);
 
     unsigned char *pixels = malloc(linhas * colunas);
     for (int i = 0; i < linhas * colunas; i++) {
         int val;
-        ignorarComentarios(fin);
         fscanf(fin, "%d", &val);
         pixels[i] = (unsigned char) val;
     }
