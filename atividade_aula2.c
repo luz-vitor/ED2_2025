@@ -1,3 +1,12 @@
+/*
+Júlia Miranda
+Leonardo Serafim
+Marcus Vinicius de Oliveira Silva
+Patrick Perete Santos 
+Vitor Augusto de Campos Luz
+*/ 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
