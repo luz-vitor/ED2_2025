@@ -4,8 +4,7 @@ Leonardo Serafim
 Marcus Vinicius de Oliveira Silva
 Patrick Perete Santos 
 Vitor Augusto de Campos Luz
-*/ 
-
+*/
 
 /**
  * @file index.h
@@ -34,7 +33,7 @@ Vitor Augusto de Campos Luz
 /** Tamanho máximo do campo 'nome' em cada entrada de índice */
 #define MAX_NAME 100
 
-/** Número máximo de entradas carregadas em memória por rodada (ajustável) */
+/** Número máximo de entradas carregadas em memória por rodada (pode ser ajustada) */
 #define MAX_INMEM_ENTRIES 20000
 
 
@@ -45,7 +44,7 @@ Vitor Augusto de Campos Luz
  * @brief Estrutura que representa uma entrada do índice de imagens.
  */
 typedef struct {
-    char nome[MAX_NAME]; /**< Nome da imagem */
+    char nome[MAX_NAME];  /**< Nome da imagem */
     long offset;          /**< Posição no arquivo de dados */
     int tamanho;          /**< Tamanho em bytes */
     int linhas;           /**< Altura da imagem (pixels) */
@@ -57,7 +56,7 @@ typedef struct {
 /* ---------------------- Protótipos de Funções ---------------------- */
 
 /**
- * @brief Insere uma imagem PGM (P2) no arquivo binário e adiciona ao índice.
+ * @brief Insere uma imagem PGM no arquivo binário e adiciona ao índice.
  * @param nomeArquivo Caminho do arquivo de imagem PGM.
  * @param nomeChave Nome identificador a ser armazenado no índice.
  */

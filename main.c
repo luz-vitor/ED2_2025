@@ -6,15 +6,13 @@ Patrick Perete Santos
 Vitor Augusto de Campos Luz
 */ 
 
-
-
-
 /**
  * @file main.c
- * @brief Programa principal que interage com o usuário via menu textual.
+ * @brief Programa principal
  *
- * Permite inserir imagens PGM (P2), listar o índice e ordenar
+ * Permite inserir imagens PGM, listar o índice e ordenar
  * o arquivo de índice usando Merge Sort Externo.
+ * As funções de negativar, limiarizar e exportarImagem, foram retiradas do contexto dessa atividade.
  */
 
 #include "index.h"
@@ -28,12 +26,12 @@ int main(void) {
         printf("\n--- MENU ---\n");
         printf("1 - Inserir imagem\n");
         printf("2 - Listar imagens\n");
-        printf("3 - Ordenar índice (merge sort externo)\n");
+        printf("3 - Ordenar índice\n");
         printf("0 - Sair\n");
         printf("Opção: ");
 
         if (scanf("%d", &opcao) != 1) {
-            while (getchar() != '\n'); // limpa buffer
+            while (getchar() != '\n');
             continue;
         }
 

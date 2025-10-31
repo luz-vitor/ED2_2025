@@ -6,9 +6,6 @@ Patrick Perete Santos
 Vitor Augusto de Campos Luz
 */ 
 
-
-
-
 /**
  * @file index.c
  * @brief Implementação das funções de manipulação de índice e ordenação externa.
@@ -112,23 +109,52 @@ static int cmp_indexentry(const void *a, const void *b) {
 
 int generate_runs(const char *index_filename) {
     FILE *fin = fopen(index_filename, "rb");
-    if (!fin) { perror("generate_runs: fopen"); return -1; }
+    if (!fin) {
+        fprintf(stderr, "generate_runs: erro ao abrir '%s': %s\n", index_filename, strerror(errno));
+        return -1;
+    }
 
     IndexEntry *buffer = malloc(sizeof(IndexEntry) * MAX_INMEM_ENTRIES);
-    if (!buffer) { perror("malloc buffer"); fclose(fin); return -1; }
+    if (!buffer) {
+        fprintf(stderr, "generate_runs: falha ao alocar %zu bytes para buffer: %s\n",
+                sizeof(IndexEntry) * (size_t)MAX_INMEM_ENTRIES, strerror(errno));
+        fclose(fin);
+        return -1;
+    }
 
     int run_count = 0;
     while (1) {
         size_t read = fread(buffer, sizeof(IndexEntry), MAX_INMEM_ENTRIES, fin);
-        if (read == 0) break;
+        if (read == 0) {
+            if (ferror(fin)) {
+                fprintf(stderr, "generate_runs: erro ao ler '%s': %s\n", index_filename, strerror(errno));
+                free(buffer);
+                fclose(fin);
+                return -1;
+            }
+            break; /* EOF */
+        }
 
         qsort(buffer, read, sizeof(IndexEntry), cmp_indexentry);
 
         char runname[128];
         snprintf(runname, sizeof(runname), "run_%03d.bin", run_count);
         FILE *frun = fopen(runname, "wb");
-        if (!frun) { perror("generate_runs: fopen run"); free(buffer); fclose(fin); return -1; }
-        fwrite(buffer, sizeof(IndexEntry), read, frun);
+        if (!frun) {
+            fprintf(stderr, "generate_runs: erro ao criar run '%s': %s\n", runname, strerror(errno));
+            free(buffer);
+            fclose(fin);
+            return -1;
+        }
+        size_t written = fwrite(buffer, sizeof(IndexEntry), read, frun);
+        if (written != read) {
+            fprintf(stderr, "generate_runs: falha ao escrever run '%s' (escreveu %zu de %zu): %s\n",
+                    runname, written, read, strerror(errno));
+            fclose(frun);
+            free(buffer);
+            fclose(fin);
+            return -1;
+        }
         fclose(frun);
 
         run_count++;
@@ -184,34 +210,92 @@ static int heap_pop(int *heap, int *heap_size, IndexEntry *current) {
 int k_way_merge(int run_count, const char *out_filename) {
     if (run_count <= 0) return -1;
 
-    FILE **runs = malloc(sizeof(FILE*) * run_count);
-    IndexEntry *current = malloc(sizeof(IndexEntry) * run_count);
-    bool *has_current = malloc(sizeof(bool) * run_count);
-    if (!runs || !current || !has_current) { perror("k_way_merge: malloc"); return -1; }
+    FILE **runs = NULL;
+    IndexEntry *current = NULL;
+    bool *has_current = NULL;
+    int *heap = NULL;
+    FILE *fout = NULL;
+
+    runs = malloc(sizeof(FILE*) * run_count);
+    current = malloc(sizeof(IndexEntry) * run_count);
+    has_current = malloc(sizeof(bool) * run_count);
+    heap = malloc(sizeof(int) * run_count);
+    if (!runs || !current || !has_current || !heap) {
+        fprintf(stderr, "k_way_merge: malloc falhou (%s)\n", strerror(errno));
+        goto cleanup;
+    }
 
     for (int i = 0; i < run_count; i++) {
         char runname[128];
         snprintf(runname, sizeof(runname), "run_%03d.bin", i);
         runs[i] = fopen(runname, "rb");
-        has_current[i] = fread(&current[i], sizeof(IndexEntry), 1, runs[i]) == 1;
+        if (!runs[i]) {
+            fprintf(stderr, "k_way_merge: nao foi possivel abrir run '%s' (idx=%d): %s\n",
+                    runname, i, strerror(errno));
+            goto cleanup;
+        }
+
+        if (fread(&current[i], sizeof(IndexEntry), 1, runs[i]) == 1) {
+            has_current[i] = true;
+        } else {
+            if (ferror(runs[i])) {
+                fprintf(stderr, "k_way_merge: erro ao ler run '%s' (idx=%d): %s\n",
+                        runname, i, strerror(errno));
+                goto cleanup;
+            }
+            
+            has_current[i] = false;
+            rewind(runs[i]);
+        }
     }
 
-    int *heap = malloc(sizeof(int) * run_count);
     int heap_size = 0;
     for (int i = 0; i < run_count; i++) if (has_current[i]) heap_push(heap, &heap_size, i, current);
 
-    FILE *fout = fopen(out_filename, "wb");
-    while (heap_size > 0) {
-        int idx = heap_pop(heap, &heap_size, current);
-        fwrite(&current[idx], sizeof(IndexEntry), 1, fout);
-        if (fread(&current[idx], sizeof(IndexEntry), 1, runs[idx]) == 1)
-            heap_push(heap, &heap_size, idx, current);
+    fout = fopen(out_filename, "wb");
+    if (!fout) {
+        fprintf(stderr, "k_way_merge: nao foi possivel criar saida '%s': %s\n", out_filename, strerror(errno));
+        goto cleanup;
     }
 
-    fclose(fout);
+    while (heap_size > 0) {
+        int idx = heap_pop(heap, &heap_size, current);
+        if (idx < 0) break;
+
+        if (fwrite(&current[idx], sizeof(IndexEntry), 1, fout) != 1) {
+            fprintf(stderr, "k_way_merge: falha ao escrever em '%s': %s\n", out_filename, strerror(errno));
+            goto cleanup;
+        }
+
+        if (fread(&current[idx], sizeof(IndexEntry), 1, runs[idx]) == 1) {
+            heap_push(heap, &heap_size, idx, current);
+        } else {
+            if (ferror(runs[idx])) {
+                char runname[128];
+                snprintf(runname, sizeof(runname), "run_%03d.bin", idx);
+                fprintf(stderr, "k_way_merge: erro ao ler run '%s' (idx=%d): %s\n",
+                        runname, idx, strerror(errno));
+                goto cleanup;
+            }
+            
+            fclose(runs[idx]);
+            runs[idx] = NULL;
+        }
+    }
+    
     for (int i = 0; i < run_count; i++) if (runs[i]) fclose(runs[i]);
+    fclose(fout);
     free(runs); free(current); free(has_current); free(heap);
     return 0;
+
+cleanup:
+   
+    if (fout) { fclose(fout); fout = NULL; remove(out_filename); }
+    if (runs) {
+        for (int i = 0; i < run_count; i++) if (runs[i]) fclose(runs[i]);
+    }
+    free(runs); free(current); free(has_current); free(heap);
+    return -1;
 }
 
 void external_merge_sort_index(void) {
